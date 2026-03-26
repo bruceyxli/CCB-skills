@@ -8,19 +8,19 @@ Inspired by [Harness Engineering](https://openai.com/index/harness-engineering/)
 
 | Command | Description |
 |---------|-------------|
-| `/review` | Code review with security, architecture, reliability, and quality checks |
-| `/plan` | Design implementation plans before writing code |
-| `/security-audit` | Focused security audit across auth, injection, secrets, network |
-| `/refactor` | Restructure code without changing behavior |
-| `/test` | Generate tests matching existing project patterns |
-| `/debug` | Systematic bug investigation and fix |
-| `/cleanup` | Code garbage collection — dead code, inconsistencies, smells |
-| `/optimize` | Measure-first performance optimization |
-| `/explore` | Map an unfamiliar codebase without modifying anything |
-| `/deploy-check` | Pre-deployment readiness checklist |
-| `/doc` | Generate documentation at code, module, or project level |
-| `/migrate` | Framework/library migration planning and execution |
-| `/pr` | Create well-structured pull requests |
+| `/ccb-review` | Code review with security, architecture, reliability, and quality checks |
+| `/ccb-plan` | Design implementation plans before writing code |
+| `/ccb-security-audit` | Focused security audit across auth, injection, secrets, network |
+| `/ccb-refactor` | Restructure code without changing behavior |
+| `/ccb-test` | Generate tests matching existing project patterns |
+| `/ccb-debug` | Systematic bug investigation and fix |
+| `/ccb-cleanup` | Code garbage collection — dead code, inconsistencies, smells |
+| `/ccb-optimize` | Measure-first performance optimization |
+| `/ccb-explore` | Map an unfamiliar codebase without modifying anything |
+| `/ccb-deploy-check` | Pre-deployment readiness checklist |
+| `/ccb-doc` | Generate documentation at code, module, or project level |
+| `/ccb-migrate` | Framework/library migration planning and execution |
+| `/ccb-pr` | Create well-structured pull requests |
 
 ## Quick Start
 
@@ -34,7 +34,7 @@ mkdir %USERPROFILE%\.claude\commands
 copy commands\*.md %USERPROFILE%\.claude\commands\
 ```
 
-Then in Claude Code: `/review src/auth.js`
+Then in Claude Code: `/ccb-review src/auth.js`
 
 ## Templates
 

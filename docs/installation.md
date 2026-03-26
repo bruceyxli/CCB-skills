@@ -44,19 +44,19 @@ New-Item -ItemType Junction -Path "$env:USERPROFILE\.claude\commands" -Target "D
 Once installed, use skills as slash commands in Claude Code:
 
 ```
-/review                    # Review all uncommitted changes
-/review src/auth.js        # Review specific file
-/plan Add user roles       # Plan a feature
-/security-audit            # Audit entire project
-/debug Login returns 401   # Debug a specific issue
-/test src/utils.js         # Generate tests
-/cleanup                   # Find and fix code smells
-/optimize api/search       # Optimize specific area
-/explore                   # Map unfamiliar codebase
-/deploy-check              # Pre-deployment checklist
-/doc src/lib/              # Generate documentation
-/migrate React 18 to 19   # Migration planning
-/pr                        # Create a pull request
+/ccb-review                    # Review all uncommitted changes
+/ccb-review src/auth.js        # Review specific file
+/ccb-plan Add user roles       # Plan a feature
+/ccb-security-audit            # Audit entire project
+/ccb-debug Login returns 401   # Debug a specific issue
+/ccb-test src/utils.js         # Generate tests
+/ccb-cleanup                   # Find and fix code smells
+/ccb-optimize api/search       # Optimize specific area
+/ccb-explore                   # Map unfamiliar codebase
+/ccb-deploy-check              # Pre-deployment checklist
+/ccb-doc src/lib/              # Generate documentation
+/ccb-migrate React 18 to 19   # Migration planning
+/ccb-pr                        # Create a pull request
 ```
 
 ## Customization
