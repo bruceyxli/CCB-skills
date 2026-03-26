@@ -1,4 +1,4 @@
-# CCB-skills
+# CCB-skills (Claude Code Basic Skills)
 
 A collection of reusable Claude Code slash commands for common programming workflows.
 
