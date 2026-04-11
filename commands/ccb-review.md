@@ -1,3 +1,22 @@
+---
+name: ccb-review
+description: Thorough code review with data-flow security tracing and consistency analysis
+stage: verification
+arguments: "files or empty (defaults to uncommitted changes)"
+reads:
+  - git-diff
+  - source-code
+writes:
+  - review-report
+destructive: false
+suggests_next:
+  - ccb-refactor
+  - ccb-security-audit
+research:
+  - "Steenhoek et al., ASE 2024 (data-flow tracing)"
+  - "Li et al., LLift, USENIX Security 2024 (consistency analysis)"
+---
+
 # Code Review
 
 Perform a thorough code review of the specified files or recent changes.
@@ -78,3 +97,40 @@ If consistency violations were found, add:
 ## Consistency Violations
 - [pattern] is used in N/M locations; this change deviates at file:line
 ```
+
+## Examples
+
+### Example: Pre-commit sanity check
+
+**Scenario:** Just finished a feature, want to catch issues before committing.
+
+**Invocation:** `/ccb-review`
+
+**Output excerpt:**
+```
+[CRITICAL] lib/routes.js:87 — User input reaches shell via execSync
+  Data flow: req.body.path → sanitize() (regex only) → execSync(cmd + path)
+  → The regex misses backticks. PoC: path = "a`rm -rf /`"
+  → fix: use execFile with argument array, not string concat
+
+[MEDIUM] lib/store.js:234 — Silent catch swallows save failures
+  → replace `catch {}` with explicit logger.error + metric increment
+
+## Consistency Violations
+- Timing-safe comparison is used in 5 of 6 secret checks;
+  lib/auth.js:102 uses === on the legacy token path.
+
+| Severity | Count |
+|----------|-------|
+| CRITICAL | 1     |
+| MEDIUM   | 2     |
+| LOW      | 4     |
+```
+
+## Known Limitations
+
+- Consistency analysis (LLift-style) needs a dominant pattern to compare against — ineffective on tiny codebases, greenfield code, or files reviewed in complete isolation.
+- Data-flow tracing degrades on heavy metaprogramming, dynamic dispatch, reflection, and cross-language boundaries (e.g., Python → C extension, JS → WASM).
+- CWE checklist is calibrated for web/backend code; noisy for CLI tools and minimally useful for ML training/inference code.
+- Static-only: runtime-only bugs (race conditions, load-dependent behavior, platform-specific quirks) are out of scope — pair with runtime tests.
+- Severity ratings are heuristic; for high-stakes changes, treat HIGH findings as a floor for human review, not a ceiling.

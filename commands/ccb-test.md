@@ -1,3 +1,21 @@
+---
+name: ccb-test
+description: Generate tests using mutation testing and property-based principles
+stage: execution
+arguments: "target code or module"
+reads:
+  - source-code
+  - existing-tests
+writes:
+  - test-files
+destructive: true
+suggests_next:
+  - ccb-review
+research:
+  - "Papadakis et al., Mutation Testing Advances, Advances in Computers 2019"
+  - "MacIver et al., Hypothesis: Property-Based Testing, JOSS 2019"
+---
+
 # Generate Tests
 
 Write tests for the specified code.
@@ -61,3 +79,54 @@ Write the test file(s) and run them. Report results:
 ```
 
 If any test fails, fix the test or flag the bug in the source code.
+
+## Examples
+
+### Example 1: Pure-logic unit tests
+
+**Scenario:** `lib/config.js` is schema-driven and easy to test in isolation.
+
+**Invocation:** `/ccb-test lib/config.js — cover schema validation and default-value fallback`
+
+**Output excerpt:**
+```
+Wrote 14 tests in lib/config.test.js using node:test:
+- ✓ accepts valid schema-conformant config
+- ✓ rejects unknown top-level keys
+- ✓ falls back to default when a field is missing
+- ✓ rejects type mismatches (string where number expected)
+- ✓ mutation killer: flipping the "required" check would be
+  caught by "rejects unknown top-level keys"
+
+## Coverage Notes
+- All 4 public exports tested
+- Known gap: filesystem error paths in loadConfig — those are
+  system boundaries and need integration tests, not units
+```
+
+### Example 2: Mutation check on existing tests
+
+**Scenario:** Suspect existing anomaly tests aren't catching off-by-one bugs.
+
+**Invocation:** `/ccb-test audit lib/anomaly.test.js — what mutations would slip through?`
+
+**Output excerpt:**
+```
+## Mutation Simulation
+- Flipping `>= threshold` to `> threshold` in detectBurnRateSpike
+  → NOT CAUGHT by existing tests (no boundary test at exactly threshold)
+  → suggested new test: assertDoesNotFire(threshold)
+                        assertFires(threshold + 0.01)
+
+- Removing the 10-event debounce in detectCacheMissBurst
+  → NOT CAUGHT (tests only check steady-state, not transients)
+  → suggested: add test that fires 9 events and asserts no alert
+```
+
+## Known Limitations
+
+- Mutation-sensitive analysis here is a mental simulation, not real mutation testing. Tools like Stryker (JS), mutmut (Python), or Pitest (Java) provide ground truth.
+- Property-based tests are most effective on pure functions. Stateful code (databases, file I/O, global mutable state) is hard to express as invariants.
+- Greenfield projects with no existing tests force the skill to guess a framework — it will ask for confirmation rather than pick one silently.
+- Does not write integration/E2E tests by default. Those need explicit scope, fixtures, and often dedicated infrastructure this skill doesn't manage.
+- Cannot test non-deterministic behavior (timing, concurrency, external APIs) without mocks, which the skill avoids by default.

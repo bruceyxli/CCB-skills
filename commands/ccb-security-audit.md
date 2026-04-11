@@ -1,3 +1,26 @@
+---
+name: ccb-security-audit
+description: Two-phase security audit with static pre-scan and LLM deep analysis
+stage: verification
+arguments: "scope or empty (defaults to entire project)"
+reads:
+  - source-code
+  - dependencies
+  - config-files
+writes:
+  - audit-report
+destructive: false
+suggests_next:
+  - ccb-plan
+  - ccb-deploy-check
+research:
+  - "Li et al., IRIS: Combining Static Analysis and LLMs for Vulnerability Detection, 2024"
+  - "Zhang et al., Prompt-Enhanced Vulnerability Detection, ICSE 2024"
+  - "Li et al., LLift, USENIX Security 2024 (consistency analysis)"
+  - "Steenhoek et al., ASE 2024 (data-flow tracing)"
+  - "Deng et al., PentestGPT, USENIX Security 2024"
+---
+
 # Security Audit
 
 Perform a focused security audit on the codebase or specified area.
@@ -173,3 +196,43 @@ Methodology informed by:
 - Li et al., "LLift: Detecting Bugs Using LLMs by Analyzing Coding Practices" (USENIX Security 2024) — consistency analysis
 - Steenhoek et al., "Do Language Models Learn Semantics of Code?" (ASE 2024) — data-flow reasoning over surface pattern matching
 - Deng et al., "PentestGPT" (USENIX Security 2024) — modular task decomposition for security analysis
+
+## Examples
+
+### Example: Focused audit before release
+
+**Scenario:** About to ship auth-related changes; want a deep scan before release.
+
+**Invocation:** `/ccb-security-audit lib/auth.js lib/routes.js — focus on bypass and timing attacks`
+
+**Output excerpt:**
+```
+[HIGH] CWE-208: Timing-unsafe comparison — lib/auth.js:89
+  Location: apiToken === req.query.token
+  Data flow: req.query.token → string equality → allow/deny branch
+  Impact: enables remote token enumeration (~50ms per char over LAN)
+  Fix: replace with crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b))
+  Confidence: HIGH
+
+CONSISTENCY: auth middleware is applied on 18 of 19 routes;
+  lib/routes.js registers /api/debug BEFORE the middleware chain —
+  effectively public.
+  Majority pattern: app.use(requireToken); app.get('/api/...', handler)
+  Violation: app.get('/api/debug', handler) at lib/routes.js:12
+  Risk: this is how real-world auth bypasses happen.
+
+## Executive Summary
+- 0 CRITICAL, 1 HIGH, 3 MEDIUM, 2 LOW
+- Top risk: the /api/debug bypass — fix before any deploy
+- Confidence: HIGH on data-flow findings; MEDIUM on consistency
+  (2 auth middleware styles in the codebase, ambiguous majority)
+```
+
+## Known Limitations
+
+- Phase 1 static scans produce noise on codebases with test fixtures containing intentional anti-patterns (e.g., vulnerable sample apps, honeypots, training materials).
+- Data-flow tracing accuracy drops sharply across language boundaries: Python ↔ C extensions, JS ↔ WASM, any foreign function interface.
+- **Scope is application layer only.** Out of scope: infrastructure hardening, DoS resilience, threat modeling, cryptographic protocol design review, supply-chain provenance, side-channel attacks, physical access.
+- Cannot verify fixes. After remediation, re-run the audit to confirm findings are actually resolved (a false negative on re-audit is a bug in the skill, report it).
+- Authentication consistency analysis (LLift-style) needs a dominant "auth-required" pattern to compare against — fails on APIs where most endpoints are public.
+- Secrets scanning flags patterns, not identities. A real secret with an unusual format will be missed; a fake placeholder matching a pattern will be flagged.

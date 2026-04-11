@@ -1,3 +1,22 @@
+---
+name: ccb-explore
+description: Map an unfamiliar codebase through structured architecture recovery (read-only)
+stage: exploration
+arguments: "focus area or empty (defaults to entire project)"
+reads:
+  - source-code
+  - git-history
+  - project-docs
+writes:
+  - architecture-report
+destructive: false
+suggests_next:
+  - ccb-plan
+  - ccb-review
+research:
+  - "Storey, Theories/tools/methods in program comprehension, Software Visualization 2005"
+---
+
 # Explore Codebase
 
 Build a mental model of an unfamiliar codebase or area. Do NOT modify any files.
@@ -96,3 +115,55 @@ How does a typical request/operation flow through the system?
 - Potential concerns (tech debt, missing tests, unclear ownership)
 - Questions for the maintainer
 ```
+
+## Examples
+
+### Example 1: Full onboarding
+
+**Scenario:** First day on a new codebase — need a mental model before touching anything.
+
+**Invocation:** `/ccb-explore`
+
+**Output excerpt:**
+```
+## Overview
+Express + WebSocket real-time dashboard for monitoring Claude Code
+sessions. Single-file frontend, in-memory state, no database.
+
+## Data Flow
+Claude Code event → hook-handler.js → POST /hook
+  → lib/routes.js → lib/store.js update
+  → WebSocket broadcast → public/index.html re-render
+
+## Key Files
+- server.js — Express + WebSocket entry point
+- lib/store.js — all session state (façade module)
+- hook-handler.js — bridge between Claude Code hooks and server
+```
+
+### Example 2: Focused on auth
+
+**Scenario:** About to modify authentication — want to know all auth-related code first.
+
+**Invocation:** `/ccb-explore lib/auth.js and anything it touches`
+
+**Output excerpt:**
+```
+## Key Files
+- lib/auth.js — requireToken middleware, PBKDF2 password hashing
+- lib/routes.js:42-68 — login endpoint calls verifyPassword
+- lib/store.js:120-135 — apiToken generation (uuid v4)
+- public/index.html:987 — token persisted in localStorage
+
+## Red Flags
+- WebSocket token is query-parameter-based → appears in server
+  access logs if logging is enabled (currently disabled by default)
+```
+
+## Known Limitations
+
+- Architecture recovery is most reliable below ~50k LOC; summaries become lossy on larger codebases and may miss important modules.
+- Cannot recover design intent ("why this way?") without ADRs, commit messages with rationale, or README/ARCHITECTURE docs.
+- Dynamic dispatch, dependency injection frameworks, and metaprogramming (decorators, macros, reflection) obscure the real call graph.
+- Security Quick Look is a red-flag scan only — not a substitute for `/ccb-security-audit`.
+- Read-only by design: will not run the code, so runtime-only behaviors (init order, lazy loading, feature flags) are inferred, not verified.

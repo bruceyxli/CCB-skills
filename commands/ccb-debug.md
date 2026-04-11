@@ -1,3 +1,24 @@
+---
+name: ccb-debug
+description: Hypothesis-driven bug investigation with fault localization and minimal fix
+stage: execution
+arguments: "bug description or error message"
+reads:
+  - source-code
+  - error-logs
+  - git-history
+writes:
+  - code-changes
+  - debug-report
+destructive: true
+suggests_next:
+  - ccb-test
+  - ccb-review
+research:
+  - "Wong et al., Survey on Software Fault Localization, IEEE TSE 2016"
+  - "Kang et al., Explainable Automated Debugging, 2024"
+---
+
 # Debug
 
 Systematically investigate and fix a bug.
@@ -72,3 +93,42 @@ Description of the change and why it's correct.
 ## Regression Risk
 What could this fix break? How was that verified?
 ```
+
+## Examples
+
+### Example: Regression bug from a recent commit
+
+**Scenario:** Sessions list has been empty on server startup since yesterday's commit to `lib/store.js`.
+
+**Invocation:** `/ccb-debug sessions.json is empty on server startup since yesterday's commit`
+
+**Output excerpt:**
+```
+## Hypotheses (ranked)
+1. [Most likely] The loadSessions() call was reordered after the
+   auto-save interval — on startup, the empty in-memory map saves
+   over the on-disk file before load completes. Evidence:
+   git diff HEAD~1 shows loadSessions moved from line 28 to line 47.
+
+## Root Cause
+loadSessions() now runs AFTER setInterval(saveAtomic, 30000) is
+scheduled. The first auto-save fires before load completes on
+slower disks.
+Confirmed by: adding a 50ms delay to loadSessions reproduces 100%.
+
+## Fix
+Move the setInterval call inside loadSessions.then(...) so saves
+only start after load is verified complete.
+
+## Regression Risk
+Low — the change is strictly serialization (load before save).
+Existing tests still pass.
+```
+
+## Known Limitations
+
+- Requires a reproducible bug. Pure Heisenbugs — timing-dependent, environment-specific, only-in-prod — cannot be investigated here without runtime instrumentation.
+- `git bisect` is only useful for regressions with a known-good commit. Ancient bugs or "never worked" cases need different tactics.
+- Root cause may be outside the codebase: OS bug, dependency bug, infrastructure, compiler bug. Deliverable in that case is a workaround or upstream bug report, not a fix.
+- Complex concurrency and memory bugs often need runtime tools (rr, Valgrind, ThreadSanitizer, lock analyzers) that this skill doesn't deploy.
+- Hypothesis ranking is heuristic — the skill will confidently explore wrong leads if evidence is sparse. Cross-check before accepting a "root cause".

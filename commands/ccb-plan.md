@@ -1,3 +1,20 @@
+---
+name: ccb-plan
+description: Design an implementation plan before writing code (no code execution)
+stage: planning
+arguments: "task description"
+reads:
+  - source-code
+  - existing-patterns
+writes:
+  - plan-document
+destructive: false
+suggests_next:
+  - ccb-refactor
+  - ccb-test
+  - ccb-review
+---
+
 # Implementation Plan
 
 Design an implementation plan before writing any code. Do NOT write code — only produce the plan.
@@ -55,3 +72,52 @@ Step-by-step with rationale.
 ```
 
 Wait for user confirmation before proceeding to implementation.
+
+## Examples
+
+### Example 1: Feature addition
+
+**Scenario:** Adding rate limiting to an Express API before a public release.
+
+**Invocation:** `/ccb-plan add per-IP rate limiting to all /api routes, 100 req/min`
+
+**Output excerpt:**
+```
+## Summary
+Apply express-rate-limit to the /api router with an in-memory store;
+no new infra required.
+
+## Files to Change
+- lib/routes.js — wire middleware before route registration
+- lib/config.js — add rateLimit subschema (window, max)
+- README.md — document the new env vars
+
+## Trade-offs
+- Chose in-memory over Redis-backed: matches "no new infra" rule,
+  but counters reset on restart — acceptable for burst protection,
+  not sustained abuse.
+- Non-goal: distributed limiting across multiple server instances.
+```
+
+### Example 2: Refactor planning
+
+**Scenario:** `lib/store.js` has grown to 500 lines mixing session state, config, and persistence.
+
+**Invocation:** `/ccb-plan split lib/store.js into sessions, config-store, persistence modules`
+
+**Output excerpt:**
+```
+## Execution Order
+1. Extract persistence.js (atomic save/load) — no call sites change
+2. Extract config-store.js — update imports in routes.js
+3. (parallel with 2) Extract sessions.js — update imports in tools.js
+4. Shrink store.js to a façade for backward compatibility
+5. Run /ccb-review on the result
+```
+
+## Known Limitations
+
+- Plans are based on a snapshot of the codebase; long execution windows can invalidate assumptions. Re-plan if the scope shifts mid-implementation.
+- Ambiguous requirements produce ambiguous plans. If the task has >2 reasonable interpretations, force clarification before planning.
+- Trade-off analysis depends on alternatives Claude can enumerate — novel architectures or unfamiliar domains will have thinner alternatives lists.
+- The plan does not estimate effort or timeline; step count is not a proxy for work required.

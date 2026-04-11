@@ -1,3 +1,17 @@
+---
+name: ccb-doc
+description: Generate documentation at code, module, or project level (why not what)
+stage: execution
+arguments: "target code or module"
+reads:
+  - source-code
+writes:
+  - documentation
+destructive: true
+suggests_next:
+  - ccb-review
+---
+
 # Generate Documentation
 
 Create or update documentation for the specified code.
@@ -37,3 +51,39 @@ $ARGUMENTS
 ## Output
 
 Generate the documentation in the appropriate location. For README updates, show the diff. For inline docs, add them directly to the source files.
+
+## Examples
+
+### Example: Explain a complex module
+
+**Scenario:** `lib/anomaly.js` has 6 detectors and new contributors don't know when each fires.
+
+**Invocation:** `/ccb-doc lib/anomaly.js — explain the 6 detectors and when each fires`
+
+**Output excerpt:**
+````
+Added module-level JSDoc to lib/anomaly.js:
+
+/**
+ * Six anomaly detectors fed by a cost-weighted 5h rolling window.
+ * Each runs on every Stop event; false positives are throttled
+ * to ≤ 1 alert per detector per hour.
+ *
+ * - detectBurnRateSpike: > 3σ above 5h average cost/min
+ * - detectCacheMissBurst: cache read ratio drops below 30%
+ *   for ≥ 10 consecutive events (catches the pre-1.6.0 cache bug)
+ * ...
+ */
+
+Also added inline comments on the two non-obvious thresholds
+(hardcoded at lib/anomaly.js:12-14) — explains why they're
+tuned to Sonnet pricing.
+````
+
+## Known Limitations
+
+- Documenting "why" requires context beyond the code: commit messages, linked issues, design docs, or the original author. Without these, docs default to restating "what".
+- Auto-generated docs for actively-changing code create maintenance debt. Prefer documenting stable modules; flag volatile areas as "see code".
+- Cannot verify accuracy of external dependency documentation — outbound links may break and versions may drift.
+- Inline comments in fast-moving code decay rapidly. Prefer README/ARCHITECTURE docs for stable high-level facts, inline only for non-obvious local logic.
+- Cannot infer intended invariants that aren't already encoded in tests or types.
